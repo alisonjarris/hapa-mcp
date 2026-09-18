@@ -11,7 +11,7 @@ import { registerConditionalTools, registerTools } from "../tools/index.js";
 import { registerResources, readInstructions } from "../resources/index.js";
 import { registerPrompts } from "../prompts/index.js";
 import { stopSimulatedLogging } from "./logging.js";
-import { syncRoots } from "./roots.js";
+import { syncRoots, removeRootsSession } from "./roots.js";
 
 // Server Factory response
 export type ServerFactoryResponse = {
@@ -110,6 +110,9 @@ export const createServer: () => ServerFactoryResponse = () => {
       // Stop any simulated logging or resource updates that may have been initiated.
       stopSimulatedLogging(sessionId);
       stopSimulatedResourceUpdates(sessionId);
+      // Drop this session's cached roots list, which otherwise stays in the
+      // module-level map for the life of the process.
+      removeRootsSession(sessionId);
       // Clean up task store timers
       taskStore.cleanup();
       if (initializeTimeout) clearTimeout(initializeTimeout);
