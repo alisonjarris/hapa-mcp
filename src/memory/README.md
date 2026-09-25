@@ -2,6 +2,8 @@
 
 A basic implementation of persistent memory using a local knowledge graph. This lets Claude remember information about the user across chats.
 
+Published on npm as [`@modelcontextprotocol/server-memory`](https://www.npmjs.com/package/@modelcontextprotocol/server-memory).
+
 ## Core Concepts
 
 ### Entities
@@ -70,6 +72,7 @@ Example:
       - `to` (string): Target entity name
       - `relationType` (string): Relationship type in active voice
   - Skips duplicate relations
+  - Fails if either the source or target entity doesn't exist
 
 - **add_observations**
   - Add new observations to existing entities
@@ -84,7 +87,7 @@ Example:
   - Remove entities and their relations
   - Input: `entityNames` (string[])
   - Cascading deletion of associated relations
-  - Silent operation if entity doesn't exist
+  - No error if an entity doesn't exist; the response reports which names were not found
 
 - **delete_observations**
   - Remove specific observations from entities
@@ -92,7 +95,7 @@ Example:
     - Each object contains:
       - `entityName` (string): Target entity
       - `observations` (string[]): Observations to remove
-  - Silent operation if observation doesn't exist
+  - No error if an observation doesn't exist; the response reports how many were deleted
 
 - **delete_relations**
   - Remove specific relations from the graph
@@ -101,7 +104,7 @@ Example:
       - `from` (string): Source entity name
       - `to` (string): Target entity name
       - `relationType` (string): Relationship type
-  - Silent operation if relation doesn't exist
+  - No error if a relation doesn't exist; the response reports how many were deleted
 
 - **read_graph**
   - Read the entire knowledge graph
@@ -124,6 +127,14 @@ Example:
     - Requested entities
     - Relations between requested entities
   - Silently skips non-existent nodes
+
+### Resources
+
+- **knowledge-graph** (`memory://knowledge-graph`)
+  - The full knowledge graph as a readable MCP Resource
+  - MIME type: `application/json`
+  - Returns the same shape as `read_graph` (entities and relations)
+  - Mutation tools (`create_entities`, `create_relations`, `add_observations`, `delete_entities`, `delete_observations`, `delete_relations`) emit `notifications/resources/updated` for this URI, so subscribed clients see live changes
 
 # Usage with Claude Desktop
 
@@ -159,6 +170,24 @@ Add this to your claude_desktop_config.json:
 }
 ```
 
+On Windows, use `cmd /c` to launch `npx`:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    }
+  }
+}
+```
+
 #### NPX with custom setting
 
 The server can be configured using the following environment variables:
@@ -173,14 +202,35 @@ The server can be configured using the following environment variables:
         "@modelcontextprotocol/server-memory"
       ],
       "env": {
-        "MEMORY_FILE_PATH": "/path/to/custom/memory.json"
+        "MEMORY_FILE_PATH": "/path/to/custom/memory.jsonl"
       }
     }
   }
 }
 ```
 
-- `MEMORY_FILE_PATH`: Path to the memory storage JSON file (default: `memory.json` in the server directory)
+On Windows, use:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "/path/to/custom/memory.jsonl"
+      }
+    }
+  }
+}
+```
+
+- `MEMORY_FILE_PATH`: Path to the memory storage JSONL file (default: `memory.jsonl` in the server directory)
 
 # VS Code Installation Instructions
 
@@ -198,7 +248,7 @@ Add the configuration to your user-level MCP configuration file. Open the Comman
 **Method 2: Workspace Configuration**
 Alternatively, you can add the configuration to a file called `.vscode/mcp.json` in your workspace. This will allow you to share the configuration with others.
 
-> For more details about MCP configuration in VS Code, see the [official VS Code MCP documentation](https://code.visualstudio.com/docs/copilot/mcp).
+> For more details about MCP configuration in VS Code, see the [official VS Code MCP documentation](https://code.visualstudio.com/docs/copilot/customization/mcp-servers).
 
 #### NPX
 
@@ -208,6 +258,24 @@ Alternatively, you can add the configuration to a file called `.vscode/mcp.json`
     "memory": {
       "command": "npx",
       "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
+    }
+  }
+}
+```
+
+On Windows, use:
+
+```json
+{
+  "servers": {
+    "memory": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
         "-y",
         "@modelcontextprotocol/server-memory"
       ]
