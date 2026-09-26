@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -19,10 +18,7 @@ describe('server version', () => {
     expect(SERVER_VERSION).not.toBe('0.2.0');
   });
 
-  // CI runs `npm test` before the dedicated build job. `npm ci` usually
-  // materializes dist/ via prepare, but that is not guaranteed (e.g. local
-  // `rm -rf dist && npm test`, or install with --ignore-scripts).
-  it.skipIf(!existsSync(distVersionPath))(
+  it(
     'resolves package.json from the dist layout after build',
     async () => {
       const distModule = (await import(pathToFileURL(distVersionPath).href)) as {
@@ -32,7 +28,7 @@ describe('server version', () => {
     },
   );
 
-  it.skipIf(!existsSync(distIndexPath))(
+  it(
     'stdio initialize reports package.json version in serverInfo',
     async () => {
       const transport = new StdioClientTransport({
