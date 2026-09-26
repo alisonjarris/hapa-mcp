@@ -14,7 +14,7 @@ export interface ThoughtData {
 
 export class SequentialThinkingServer {
   private thoughtHistory: ThoughtData[] = [];
-  private branches: Record<string, ThoughtData[]> = {};
+  private branches = new Map<string, ThoughtData[]>();
   private disableThoughtLogging: boolean;
 
   constructor() {
@@ -53,36 +53,48 @@ export class SequentialThinkingServer {
     try {
       // Validation happens at the tool registration layer via Zod
       // Adjust totalThoughts if thoughtNumber exceeds it
-      if (input.thoughtNumber > input.totalThoughts) {
-        input.totalThoughts = input.thoughtNumber;
+      const thoughtData = { ...input };
+      if (thoughtData.thoughtNumber > thoughtData.totalThoughts) {
+        thoughtData.totalThoughts = thoughtData.thoughtNumber;
       }
 
-      this.thoughtHistory.push(input);
-
-      if (input.branchFromThought && input.branchId) {
-        if (!this.branches[input.branchId]) {
-          this.branches[input.branchId] = [];
-        }
-        this.branches[input.branchId].push(input);
+      const branchId = thoughtData.branchFromThought && thoughtData.branchId
+        ? thoughtData.branchId
+        : undefined;
+      const branchThoughts = branchId
+        ? this.branches.get(branchId) ?? []
+        : undefined;
+      const branchIds = [...this.branches.keys()];
+      if (branchId && !this.branches.has(branchId)) {
+        branchIds.push(branchId);
       }
 
-      if (!this.disableThoughtLogging) {
-        const formattedThought = this.formatThought(input);
-        console.error(formattedThought);
-      }
-
-      return {
+      const result = {
         content: [{
           type: "text" as const,
           text: JSON.stringify({
-            thoughtNumber: input.thoughtNumber,
-            totalThoughts: input.totalThoughts,
-            nextThoughtNeeded: input.nextThoughtNeeded,
-            branches: Object.keys(this.branches),
-            thoughtHistoryLength: this.thoughtHistory.length
+            thoughtNumber: thoughtData.thoughtNumber,
+            totalThoughts: thoughtData.totalThoughts,
+            nextThoughtNeeded: thoughtData.nextThoughtNeeded,
+            branches: branchIds,
+            thoughtHistoryLength: this.thoughtHistory.length + 1
           }, null, 2)
         }]
       };
+
+      if (!this.disableThoughtLogging) {
+        const formattedThought = this.formatThought(thoughtData);
+        console.error(formattedThought);
+      }
+
+      // Commit state only after formatting, serialization, and logging succeed.
+      this.thoughtHistory.push(thoughtData);
+      if (branchId && branchThoughts) {
+        branchThoughts.push(thoughtData);
+        this.branches.set(branchId, branchThoughts);
+      }
+
+      return result;
     } catch (error) {
       return {
         content: [{

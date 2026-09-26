@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import chalk from 'chalk';
 import { SequentialThinkingServer, ThoughtData } from '../lib.js';
 
 // Mock chalk to avoid ESM issues
@@ -95,21 +96,52 @@ describe('SequentialThinkingServer', () => {
     });
 
     it('should auto-adjust totalThoughts if thoughtNumber exceeds it', () => {
-      const input = {
+      const input = Object.freeze({
         thought: 'Thought 5',
         thoughtNumber: 5,
         totalThoughts: 3,
         nextThoughtNeeded: true
-      };
+      });
 
       const result = server.processThought(input);
       const data = JSON.parse(result.content[0].text);
 
+      expect(result.isError).toBeUndefined();
       expect(data.totalThoughts).toBe(5);
+      expect(input.totalThoughts).toBe(3);
     });
   });
 
   describe('processThought - branching', () => {
+    it.each(['constructor', 'toString', '__proto__'])(
+      'should create and continue a branch named %s',
+      (branchId) => {
+        const input = {
+          thought: 'First branch thought',
+          thoughtNumber: 1,
+          totalThoughts: 2,
+          nextThoughtNeeded: true,
+          branchFromThought: 1,
+          branchId,
+        };
+
+        const first = server.processThought(input);
+        const second = server.processThought({
+          ...input,
+          thought: 'Second branch thought',
+          thoughtNumber: 2,
+          nextThoughtNeeded: false,
+        });
+
+        expect(first.isError).toBeUndefined();
+        expect(second.isError).toBeUndefined();
+        expect(JSON.parse(second.content[0].text)).toMatchObject({
+          branches: [branchId],
+          thoughtHistoryLength: 2,
+        });
+      },
+    );
+
     it('should track branches correctly', () => {
       const input1 = {
         thought: 'Main thought',
@@ -263,6 +295,71 @@ describe('SequentialThinkingServer', () => {
     afterEach(() => {
       // Reset to disabled for other tests
       process.env.DISABLE_THOUGHT_LOGGING = 'true';
+      vi.restoreAllMocks();
+    });
+
+    it.each([
+      { failure: 'formatting', branchId: 'new-branch' },
+      { failure: 'formatting', branchId: 'existing-branch' },
+      { failure: 'logging', branchId: 'new-branch' },
+      { failure: 'logging', branchId: 'existing-branch' },
+      { failure: 'serialization', branchId: 'new-branch' },
+      { failure: 'serialization', branchId: 'existing-branch' },
+    ])('should preserve state when $failure fails for $branchId', ({ failure, branchId }) => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const first: ThoughtData = {
+        thought: 'Recorded thought',
+        thoughtNumber: 1,
+        totalThoughts: 3,
+        nextThoughtNeeded: true,
+        branchFromThought: 1,
+        branchId: 'existing-branch',
+      };
+      expect(serverWithLogging.processThought(first).isError).toBeUndefined();
+
+      const throwError = () => {
+        throw new Error(`${failure} failed`);
+      };
+      if (failure === 'formatting') {
+        vi.spyOn(chalk, 'green').mockImplementationOnce(throwError);
+      } else if (failure === 'logging') {
+        consoleSpy.mockImplementationOnce(throwError);
+      } else {
+        vi.spyOn(JSON, 'stringify').mockImplementationOnce(throwError);
+      }
+
+      const input = Object.freeze({
+        ...first,
+        thought: 'Unrecorded thought',
+        thoughtNumber: 2,
+        totalThoughts: 1,
+        branchId,
+      });
+      const failed = serverWithLogging.processThought(input);
+
+      expect(failed.isError).toBe(true);
+      expect(JSON.parse(failed.content[0].text)).toEqual({
+        error: `${failure} failed`,
+        status: 'failed',
+      });
+      expect(input.totalThoughts).toBe(1);
+      // The response exposes history length and branch IDs, but not branch contents.
+      expect(serverWithLogging).toMatchObject({
+        thoughtHistory: [first],
+        branches: new Map([['existing-branch', [first]]]),
+      });
+
+      const recovered = serverWithLogging.processThought({
+        thought: 'Recorded after recovery',
+        thoughtNumber: 2,
+        totalThoughts: 3,
+        nextThoughtNeeded: false,
+      });
+      expect(recovered.isError).toBeUndefined();
+      expect(JSON.parse(recovered.content[0].text)).toMatchObject({
+        branches: ['existing-branch'],
+        thoughtHistoryLength: 2,
+      });
     });
 
     it('should format and log regular thoughts', () => {
