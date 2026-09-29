@@ -14,7 +14,7 @@ Published on npm as [`@modelcontextprotocol/server-sequential-thinking`](https:/
 
 ## Tool
 
-### sequential_thinking
+### sequentialthinking
 
 Facilitates a detailed, step-by-step thinking process for problem-solving and analysis.
 
@@ -29,6 +29,8 @@ Facilitates a detailed, step-by-step thinking process for problem-solving and an
 - `branchId` (string, optional): Branch identifier
 - `needsMoreThoughts` (boolean, optional): If more thoughts are needed
 
+Use positive integers for thought numbers and totals. JSON numbers such as `1` and `5` are preferred; numeric strings such as `"1"` and `"5"` are also accepted. Use JSON booleans (`true` or `false`) for boolean fields; the strings `"true"` and `"false"` are also accepted.
+
 ## Usage
 
 The Sequential Thinking tool is designed for:
@@ -39,19 +41,19 @@ The Sequential Thinking tool is designed for:
 - Tasks that need to maintain context over multiple steps
 - Situations where irrelevant information needs to be filtered out
 
-In practice, you do not call `sequential_thinking` directly by hand unless your client exposes raw tool calls. Instead, connect the server to an MCP-aware host and ask the model to think through a problem step by step. The host can then decide to call the tool one or more times while it works.
+In practice, you do not call `sequentialthinking` directly by hand unless your client exposes raw tool calls. Instead, connect the server to an MCP-aware host and ask the model to work through a problem. The host can then decide to call the tool one or more times while it works.
 
 ### What it looks like in use
 
 Example prompts that typically benefit from this tool:
 
 - `Plan a database migration from PostgreSQL 14 to 16, list risks, and revise the plan if downtime exceeds 5 minutes.`
-- `Debug why this deployment only fails in production and show your reasoning step by step.`
+- `Debug why this deployment only fails in production and summarize the evidence and next checks.`
 - `Compare three architecture options for a file sync engine and branch if one assumption turns out to be wrong.`
 
 ### How to tell it is working
 
-If your host or inspector shows tool activity, you should see repeated calls to `sequential_thinking` with fields such as:
+If your host or inspector shows tool activity, look for calls to `sequentialthinking` with fields such as:
 
 - `thought`
 - `thoughtNumber`
@@ -60,14 +62,57 @@ If your host or inspector shows tool activity, you should see repeated calls to 
 
 When the reasoning changes course, you may also see revision or branching fields like `isRevision`, `revisesThought`, `branchFromThought`, or `branchId`.
 
+### Raw tool-call examples
+
+If your client exposes raw calls, select `sequentialthinking` and use these JSON arguments. The examples form a short sequence; each call records one step.
+
+An ordinary step:
+
+```json
+{
+  "thought": "Check the migration downtime budget before choosing an approach.",
+  "thoughtNumber": 1,
+  "totalThoughts": 3,
+  "nextThoughtNeeded": true
+}
+```
+
+A revision of the first step:
+
+```json
+{
+  "thought": "The confirmed downtime budget is two minutes; evaluate approaches against that limit.",
+  "thoughtNumber": 2,
+  "totalThoughts": 3,
+  "nextThoughtNeeded": true,
+  "isRevision": true,
+  "revisesThought": 1
+}
+```
+
+A branch from the first step:
+
+```json
+{
+  "thought": "Record a staged migration as an alternative to evaluate in a rehearsal.",
+  "thoughtNumber": 3,
+  "totalThoughts": 3,
+  "nextThoughtNeeded": false,
+  "branchFromThought": 1,
+  "branchId": "staged-migration"
+}
+```
+
+The tool records steps and returns progress metadata. It does not independently validate the claims in a step or guarantee a correct solution.
+
 ### Quick manual verification
 
 After installing the server in your MCP host:
 
 1. Restart or reload the host so it reconnects to the server.
-2. Confirm the `sequential_thinking` tool appears in the host's MCP tool list or inspector.
-3. Ask the host to solve a non-trivial problem in a step-by-step way.
-4. Verify that the host invokes the tool multiple times instead of returning a one-shot answer.
+2. Confirm the `sequentialthinking` tool appears in the host's MCP tool list or inspector.
+3. Run the raw examples if the host supports them, or ask the host to use the tool for a planning task.
+4. Inspect the tool calls and returned progress metadata. The host decides whether to invoke the tool when responding to ordinary prompts.
 
 ## Configuration
 
@@ -210,6 +255,15 @@ codex mcp add sequential-thinking npx -y @modelcontextprotocol/server-sequential
 ```
 
 ## Building
+
+From the repository root, install dependencies and run this server's tests:
+
+```bash
+npm ci
+npm test --workspace @modelcontextprotocol/server-sequential-thinking
+```
+
+The test command builds the current TypeScript source before running the unit and server integration tests with coverage. From `src/sequentialthinking`, you can also run `npm test`. To build without running tests, use `npm run build` in that directory.
 
 Docker:
 

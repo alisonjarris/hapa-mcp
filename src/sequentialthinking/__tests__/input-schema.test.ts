@@ -12,10 +12,14 @@ const distIndexPath = path.join(packageRoot, 'dist', 'index.js');
 // `required` array, and string coercion must keep accepting "True"/"FALSE"
 // while rejecting anything else. Runs against the built server so it checks
 // the schema the SDK actually emits, not the zod object.
-describe.skipIf(!existsSync(distIndexPath))('sequentialthinking input schema', () => {
+describe('sequentialthinking input schema', () => {
   let client: Client;
 
   beforeAll(async () => {
+    if (!existsSync(distIndexPath)) {
+      throw new Error('Built server is missing. Run npm test to build it before testing.');
+    }
+
     const transport = new StdioClientTransport({
       command: process.execPath,
       args: [distIndexPath],
@@ -37,6 +41,20 @@ describe.skipIf(!existsSync(distIndexPath))('sequentialthinking input schema', (
     expect(tool!.inputSchema.required).toEqual(
       expect.arrayContaining(['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts'])
     );
+  });
+
+  it('advertises positive integer constraints and numeric string support', async () => {
+    const { tools } = await client.listTools();
+    const tool = tools.find(t => t.name === 'sequentialthinking');
+    expect(tool).toBeDefined();
+    for (const field of ['thoughtNumber', 'totalThoughts', 'revisesThought', 'branchFromThought']) {
+      expect(tool?.inputSchema.properties?.[field]).toMatchObject({
+        anyOf: expect.arrayContaining([
+          expect.objectContaining({ type: 'integer', minimum: 1 }),
+          expect.objectContaining({ type: 'string' }),
+        ]),
+      });
+    }
   });
 
   it('rejects a call that omits nextThoughtNeeded', async () => {
@@ -62,5 +80,76 @@ describe.skipIf(!existsSync(distIndexPath))('sequentialthinking input schema', (
       arguments: { thought: 't', nextThoughtNeeded: value, thoughtNumber: 1, totalThoughts: 1 },
     });
     expect(result.isError).toBe(true);
+  });
+
+  describe.each(['thoughtNumber', 'totalThoughts', 'revisesThought', 'branchFromThought'])(
+    '%s numeric input',
+    (field) => {
+      it.each([2, '2', ' 2 '])('accepts %j', async (value) => {
+        const result = await client.callTool({
+          name: 'sequentialthinking',
+          arguments: {
+            thought: 'Numeric input example',
+            nextThoughtNeeded: true,
+            thoughtNumber: 1,
+            totalThoughts: 3,
+            [field]: value,
+          },
+        });
+        expect(result.isError).toBeFalsy();
+        if (field === 'thoughtNumber' || field === 'totalThoughts') {
+          expect(result.structuredContent?.[field]).toBe(2);
+        }
+      });
+
+      it.each([true, false, null, [2], {}, '', ' ', 'two', 0, -1, 1.5, '0', '-1', '1.5', 'Infinity'])(
+        'rejects %j',
+        async (value) => {
+          const result = await client.callTool({
+            name: 'sequentialthinking',
+            arguments: {
+              thought: 'Invalid numeric input example',
+              nextThoughtNeeded: true,
+              thoughtNumber: 1,
+              totalThoughts: 3,
+              [field]: value,
+            },
+          });
+          expect(result.isError).toBe(true);
+          expect(JSON.stringify(result.content)).toContain(field);
+        },
+      );
+    },
+  );
+
+  it.each(['thoughtNumber', 'totalThoughts'])('rejects missing %s', async (field) => {
+    const args: Record<string, unknown> = {
+      thought: 'Missing numeric input example',
+      nextThoughtNeeded: true,
+      thoughtNumber: 1,
+      totalThoughts: 3,
+    };
+    delete args[field];
+    const result = await client.callTool({ name: 'sequentialthinking', arguments: args });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain(field);
+  });
+
+  it('does not append invalid calls to history or create branches', async () => {
+    const args = { thought: 'Valid step', nextThoughtNeeded: true, thoughtNumber: 1, totalThoughts: 3 };
+    const before = await client.callTool({ name: 'sequentialthinking', arguments: args });
+    const historyLength = before.structuredContent?.thoughtHistoryLength;
+    expect(typeof historyLength).toBe('number');
+
+    const invalid = await client.callTool({
+      name: 'sequentialthinking',
+      arguments: { ...args, branchFromThought: true, branchId: 'invalid-branch' },
+    });
+    expect(invalid.isError).toBe(true);
+
+    const after = await client.callTool({ name: 'sequentialthinking', arguments: args });
+    expect(after.isError).toBeFalsy();
+    expect(after.structuredContent?.thoughtHistoryLength).toBe(Number(historyLength) + 1);
+    expect(after.structuredContent?.branches).not.toContain('invalid-branch');
   });
 });
