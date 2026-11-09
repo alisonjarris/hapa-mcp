@@ -37,6 +37,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@mergifyio/vitest": "^2026.11.5",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@vitest/coverage-v8": "^4.1.8",

@@ -60,6 +60,9 @@ jobs:
       - name: Run tests
         if: steps.check-tests.outputs.has-tests == 'true'
         working-directory: src/${{ matrix.package }}
+        env:
+          MERGIFY_TOKEN: ${{ secrets.MERGIFY_TOKEN }}
+          MERGIFY_TEST_JOB_NAME: Test ${{ matrix.package }}
         run: uv run pytest
 
   build:
