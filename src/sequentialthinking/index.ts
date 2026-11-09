@@ -16,6 +16,13 @@ const coercedBoolean = z.union([z.boolean(), z.string()]).transform((val, ctx) =
   return z.NEVER;
 });
 
+// Accept numeric strings without coercing booleans or arrays into step numbers.
+const positiveInteger = z.number().int().min(1);
+const coercedPositiveInteger = z.union([
+  positiveInteger,
+  z.string().transform((value) => Number(value)).pipe(positiveInteger),
+]);
+
 const server = new McpServer({
   name: "sequential-thinking-server",
   version: SERVER_VERSION,
@@ -41,7 +48,7 @@ When to use this tool:
 - Situations where irrelevant information needs to be filtered out
 
 Key features:
-- You can adjust total_thoughts up or down as you progress
+- You can adjust totalThoughts up or down as you progress
 - You can question or revise previous thoughts
 - You can add more thoughts even after reaching what seemed like the end
 - You can express uncertainty and explore alternative approaches
@@ -64,7 +71,7 @@ Parameters explained:
 - thoughtNumber: Current number in sequence (can go beyond initial total if needed)
 - totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
 - isRevision: A boolean indicating if this thought revises previous thinking
-- revisesThought: If is_revision is true, which thought number is being reconsidered
+- revisesThought: If isRevision is true, which thought number is being reconsidered
 - branchFromThought: If branching, which thought number is the branching point
 - branchId: Identifier for the current branch (if any)
 - needsMoreThoughts: If reaching end but realizing more thoughts needed
@@ -84,11 +91,11 @@ You should:
     inputSchema: {
       thought: z.string().describe("Your current thinking step"),
       nextThoughtNeeded: coercedBoolean.describe("Whether another thought step is needed"),
-      thoughtNumber: z.coerce.number().int().min(1).describe("Current thought number (numeric value, e.g., 1, 2, 3)"),
-      totalThoughts: z.coerce.number().int().min(1).describe("Estimated total thoughts needed (numeric value, e.g., 5, 10)"),
+      thoughtNumber: coercedPositiveInteger.describe("Current thought number (positive integer, e.g., 1, 2, 3; numeric strings are also accepted)"),
+      totalThoughts: coercedPositiveInteger.describe("Estimated total thoughts needed (positive integer, e.g., 5, 10; numeric strings are also accepted)"),
       isRevision: coercedBoolean.optional().describe("Whether this revises previous thinking"),
-      revisesThought: z.coerce.number().int().min(1).optional().describe("Which thought is being reconsidered"),
-      branchFromThought: z.coerce.number().int().min(1).optional().describe("Branching point thought number"),
+      revisesThought: coercedPositiveInteger.optional().describe("Which thought is being reconsidered (positive integer; numeric strings are also accepted)"),
+      branchFromThought: coercedPositiveInteger.optional().describe("Branching point thought number (positive integer; numeric strings are also accepted)"),
       branchId: z.string().optional().describe("Branch identifier"),
       needsMoreThoughts: coercedBoolean.optional().describe("If more thoughts are needed")
     },
