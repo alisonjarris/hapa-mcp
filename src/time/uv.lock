@@ -363,6 +363,7 @@ dev = [
     { name = "freezegun" },
     { name = "pyright" },
     { name = "pytest" },
+    { name = "pytest-mergify" },
     { name = "ruff" },
 ]
 
@@ -379,6 +380,7 @@ dev = [
     { name = "freezegun", specifier = ">=1.5.1" },
     { name = "pyright", specifier = ">=1.1.389" },
     { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-mergify", specifier = ">=2026.11.5" },
     { name = "ruff", specifier = ">=0.8.1" },
 ]
 
@@ -620,6 +622,37 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7d/0d/549bd94f1a0a402dc8cf64563a117c0f3765662e2e668477624baeec44d5/pytest-9.0.3.tar.gz", hash = "sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c", size = 1572165, upload-time = "2026-04-07T17:16:18.027Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d4/24/a372aaf5c9b7208e7112038812994107bc65a84cd00e0354a88c2c77a617/pytest-9.0.3-py3-none-any.whl", hash = "sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9", size = 375249, upload-time = "2026-04-07T17:16:16.13Z" },
+]
+
+[[package]]
+name = "pytest-mergify"
+version = "2026.11.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pluggy" },
+    { name = "pytest" },
+    { name = "pytest-timeout" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/91/62/0f579a87920282071ba57f992d71add89bf638c5e1686f68ceae688b422a/pytest_mergify-2026.11.5-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:31f80613847c53f1aa4c60429297c65764c0523bcfd7c8807caf88e08dbf1094", size = 4087517, upload-time = "2026-11-06T13:46:58.634Z" },
+    { url = "https://files.pythonhosted.org/packages/07/35/d634466a789b17a3d19a959656432a1677f2527df1837493d488ffa7c1b1/pytest_mergify-2026.11.5-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:d645de8a423350488a4296a9ece6f4cf073cf9a0588952f2e8bdf7f0ec657497", size = 3840557, upload-time = "2026-11-06T13:47:00.469Z" },
+    { url = "https://files.pythonhosted.org/packages/86/83/70bbff53de537dfae86df574ab420a8346a996422cb01f4fe943b050ae83/pytest_mergify-2026.11.5-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:f14dd6a3c6e721c6f23aaf513e8527ef0f960af18158d58e26970064b7e9fb78", size = 4037472, upload-time = "2026-11-06T13:47:02.049Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/e1/cd02756974cfcd820b11651dd51b6f7e42a31bc1bc98f8f01fd3b0e7f70a/pytest_mergify-2026.11.5-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:754a6a252cf111ca9e738a4546ae855697e197a4afd44c2e50408569173fccdd", size = 4271926, upload-time = "2026-11-06T13:47:03.601Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/e0/6c035a04d8d38c2c6234eb8590aa7ba2d62872e31260b6e6b1e762ba2590/pytest_mergify-2026.11.5-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:a363c1f51082fb373b566093d9db4bf0709ad83422fef9144fe242a07b519674", size = 4047029, upload-time = "2026-11-06T13:47:05.145Z" },
+    { url = "https://files.pythonhosted.org/packages/01/dd/6f3e06cd191a2997176ba3fa0520eb02123448bc8e87bdfcf80b0399ebf5/pytest_mergify-2026.11.5-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:7469d06d971f0c5c7aede9eabc0e1e1032db48bf6dd09f9709a6034ec72a1cff", size = 4279905, upload-time = "2026-11-06T13:47:06.657Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/f4/8979c759f80c9c0f5cad3eda492052b66b433bd117eb20f4838e13b3fd66/pytest_mergify-2026.11.5-cp310-abi3-win_amd64.whl", hash = "sha256:b1744c30e432820cfa65001743c27e80c45803cd102d51c4d13d9742b7e54993", size = 3871838, upload-time = "2026-11-06T13:47:08.258Z" },
+]
+
+[[package]]
+name = "pytest-timeout"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/82/4c9ecabab13363e72d880f2fb504c5f750433b2b6f16e99f4ec21ada284c/pytest_timeout-2.4.0.tar.gz", hash = "sha256:7e68e90b01f9eff71332b25001f85c75495fc4e3a836701876183c4bcfd0540a", size = 17973, upload-time = "2025-05-05T19:44:34.99Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/b6/3127540ecdf1464a00e5a01ee60a1b09175f6913f0644ac748494d9c4b21/pytest_timeout-2.4.0-py3-none-any.whl", hash = "sha256:c42667e5cdadb151aeb5b26d114aff6bdf5a907f176a007a30b940d3d865b5c2", size = 14382, upload-time = "2025-05-05T19:44:33.502Z" },
 ]
 
 [[package]]

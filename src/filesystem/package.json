@@ -32,6 +32,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@mergifyio/vitest": "^2026.11.5",
     "@types/diff": "^5.0.9",
     "@types/minimatch": "^5.1.2",
     "@types/node": "^22",
